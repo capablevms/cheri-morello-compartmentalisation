@@ -10,6 +10,9 @@ import sys
 
 from pathlib import Path
 
+# Emulate `sys.path` from path of module `run_tests_common` (found via
+# environment variable `PYTHONPATH`), as required by the CHERI testing
+# infrastructure which we are using to simplify booting a QEMU instance
 test_scripts_dir = str(Path(importlib.util.find_spec("run_tests_common").origin).parent.absolute())
 sys.path = sys.path[sys.path.index(test_scripts_dir):]
 
@@ -20,8 +23,9 @@ def run_tests(qemu: boot_cheribsd.QemuCheriBSDInstance, args: argparse.Namespace
         boot_cheribsd.set_ld_library_path_with_sysroot(qemu)
     boot_cheribsd.info("Running tests for cheri-morello-compartmentalisation")
 
-    # Run the tests according to the architecture
-    return os.system(f"cd {args.build-dir}/build && ctest") == 0
+    # Run command on host to test the executed client
+    return os.system(f"cd {args.build_dir}/build && ctest") == 0
 
 if __name__ == '__main__':
+    # This call has the side-effect of booting a QEMU instance
     run_tests_main(test_function=run_tests, need_ssh=True, should_mount_builddir=False)
