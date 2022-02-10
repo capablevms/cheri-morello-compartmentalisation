@@ -22,6 +22,7 @@ cmake --build $build_dir
 
 # Set arguments for Morello hybrid instance
 export SSHPORT=10086
+export PYTHONPATH="/home/buildbot/build/test-scripts"
 
 args=(
     --architecture morello-hybrid
