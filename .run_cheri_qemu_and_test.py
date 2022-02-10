@@ -24,7 +24,7 @@ def run_tests(qemu: boot_cheribsd.QemuCheriBSDInstance, args: argparse.Namespace
     boot_cheribsd.info("Running tests for cheri-morello-compartmentalisation")
 
     # Run command on host to test the executed client
-    return os.system(f"cd {args.build_dir}/build && ctest") == 0
+    return os.system(f"cd {args.build_dir}/build && ctest -V") == 0
 
 if __name__ == '__main__':
     # This call has the side-effect of booting a QEMU instance
