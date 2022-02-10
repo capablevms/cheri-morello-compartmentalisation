@@ -6,6 +6,7 @@
 import argparse
 import importlib.util
 import os
+import subprocess
 import sys
 
 from pathlib import Path
@@ -27,7 +28,6 @@ def run_tests(qemu: boot_cheribsd.QemuCheriBSDInstance, args: argparse.Namespace
     os.chdir(f"{args.build_dir}/build")
     os.environ['SSH_OPTIONS'] = '-o "StrictHostKeyChecking no"'
     os.environ['SCP_OPTIONS'] = '-o "StrictHostKeyChecking no"'
-    subprocess.run(["env"])
     subprocess.run(["/usr/bin/ctest", "-V"], check=True)
     return True
 
