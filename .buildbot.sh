@@ -3,8 +3,8 @@
 set -e
 
 build_dir="$(pwd)/build"
-src_dir="$(pwd)/"
-cheri_dir="$cheri_dir"
+src_dir="$(pwd)"
+cheri_dir="/home/buildbot/cheri/output"
 
 export CC=$cheri_dir/morello-sdk/bin/clang
 export CFLAGS="--config cheribsd-morello-hybrid.cfg"
