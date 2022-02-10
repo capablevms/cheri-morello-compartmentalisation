@@ -27,7 +27,9 @@ def run_tests(qemu: boot_cheribsd.QemuCheriBSDInstance, args: argparse.Namespace
     os.chdir(f"{args.build_dir}/build")
     os.environ['SSH_OPTIONS'] = '-o "StrictHostKeyChecking no"'
     os.environ['SCP_OPTIONS'] = '-o "StrictHostKeyChecking no"'
-    return os.system("ctest -V") == 0
+    subprocess.run(["env"])
+    subprocess.run(["/usr/bin/ctest", "-V"], check=True)
+    return True
 
 if __name__ == '__main__':
     # This call has the side-effect of booting a QEMU instance
