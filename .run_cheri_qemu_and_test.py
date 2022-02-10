@@ -26,8 +26,6 @@ def run_tests(qemu: boot_cheribsd.QemuCheriBSDInstance, args: argparse.Namespace
 
     # Run command on host to test the executed client
     os.chdir(f"{args.build_dir}/build")
-    os.environ['SSH_OPTIONS'] = "-o 'StrictHostKeyChecking no'"
-    os.environ['SCP_OPTIONS'] = "-o 'StrictHostKeyChecking no'"
     subprocess.run(["/usr/bin/ctest", "-V"], check=True)
     return True
 
