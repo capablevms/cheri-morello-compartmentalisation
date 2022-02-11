@@ -17,8 +17,7 @@ switcher_entry:
     mov      c29, c0
     mov      x0, #0
     cvtp     clr, lr
-    b        switch_compartment
-    ret      clr
+    // fall through into switch_compartment
 
 /** Code to perform actual switch
  *
@@ -80,7 +79,6 @@ switch_compartment:
     blr       c0
 
     // Clean capabilities left in the return value.
-    mov       w0, w0
     bl        clean
 
     // Restore the caller's context and compartment.

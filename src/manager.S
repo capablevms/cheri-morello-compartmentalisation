@@ -15,31 +15,9 @@ switcher_caps: .dword 0
 .global switcher_caps
 
 // Functions
-.global asm_call_wrapper
 .global init_compartments
 .global add_compartment
 .global del_compartment
-
-/**
- * Wrapper to store/restore state when coming from C
- *
- * @param x0 ASM function to call
- * @param x1-x6 parameters to pass to function in c0
- */
-.type asm_call_wrapper, "function"
-asm_call_wrapper:
-    // Save `x0` so we can temporarily use it
-    cvtp      c0, x0
-    str       c0, [sp]
-
-    // Derive `clr` (in case asm function does something weird with `PCC`)
-    cvtp      c0, lr
-    swp       c0, c0, [sp]
-    sub       sp, sp, #16
-
-    blr       c0
-    ldr       clr, [sp, #16]!
-    ret       clr
 
 /**
  * Sets up memory for compartments
@@ -55,10 +33,7 @@ asm_call_wrapper:
 init_compartments:
     // Compute size of required memory, equivalent to `length` parameter of
     // `mmap`
-    mov       x0, #COMP_SIZE
-    mov       x1, #MAX_COMP_COUNT
-    mov       x2, #32    // size of the 2 switcher capabilities
-    madd      x1, x0, x1, x2
+    mov       x1, #(32 + (COMP_SIZE * MAX_COMP_COUNT))
 
     // Store length and `lr` on stack, as we'll need them later
     stp       x1, lr, [sp, #-16]!
@@ -90,8 +65,8 @@ init_compartments:
     cvtp      c3, x3
     scbndse   c3, c3, x4
 
-    // Store (DDC, PCC) at `switcher_caps`
-    ldr       x1, switcher_caps
+    // Store (DDC, PCC) at `switcher_caps` (saved in `x0`)
+    mov       x1, x0
     stp       c2, c3, [x1], #32
 
     // Save start address for compartment capabilities in `comps_addr`
@@ -145,25 +120,12 @@ add_compartment:
     stp       c0, c1, [x2]
 
     // Increment counter
-    adr       x3, comps_cnt
-    ldr       x4, [x3]
-    add       x4, x4, #1
-    str       x4, [x3]
+    adr       x4, comps_cnt
+    add       x3, x3, #1
+    str       x3, [x4]
 
-    // Update switcher DDC
-    //adr       x2, switcher_caps
-    //ldr       c0, [x2]
-    //gclen     x1, c0
-    //add       x1, x1, #32
-    //scbndse   c0, c0, x1
-    //str       c0, [x2]
+    // Check we have not exceeded max number of compartments
+    cmp       x3, #MAX_COMP_COUNT
+    b.gt      abort
 
     ret
-
-/**
- * Function to delete an existing compartment data
- *
- * @param c0 ID of compartment to be deleted
- */
-.type del_compartment, "function"
-del_compartment:
