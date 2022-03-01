@@ -129,3 +129,70 @@ add_compartment:
     b.gt      abort
 
     ret
+
+/**
+ * Function to delete an existing compartment data
+ *
+ * @param x0 Function of compartment to be deleted
+ */
+/* TODO there is a potential issue of a compartment saving a capability it was
+ * provided to it for use (i.e., PCC, DDC), such as by storing it in the memory
+ * of another compartment. If the original compartment gets deleted, and a new
+ * compartment is allocated in the same memory region, we have leaked a
+ * capability referencing the new compartment.
+ * TODO currently, this function shifts subsequent data following a delete
+ * compartment meta-data in its place. It would be possible for a malicious
+ * compartment to inject valid malicious data in the space subsequent to this
+ * area of code, and somehow that data can be misused by the switcher. One
+ * option is to zero out respective memory, or to allocate a larger space than
+ * actually needed, to prevent this.*/
+.type del_compartment, "function"
+del_compartment:
+
+    // Find capabilities (DDC/PCC) of given compartment
+    ldr       x1, comps_addr
+    ldr       w3, comps_cnt
+
+pcc_check_start:
+    subs      w3, w3, #1
+    b.mi      pcc_not_found
+    ldr       c4, [x1, #COMP_OFFSET_PCC] // get current stored PCC to check
+    gcvalue   x4, c4
+    cmp       x4, x0 // check value of current PCC against given function
+    b.eq      pcc_found
+    add       x1, x1, #COMP_SIZE // go check next PCC
+    b         pcc_check_start
+
+pcc_not_found:
+    b         abort
+
+pcc_found:
+    // We found the address to the start of the compartment info area, at
+    // address `$x1`
+    stp       x1, lr, [sp, #-16]! // store `x1` and `lr`
+    ldr       c2, [x1, #COMP_OFFSET_DDC]
+
+    // Unmap memory region allocated
+    gcvalue   x0, c2
+    gclen     x1, c2
+    bl        munmap
+    cmp       x0, #-1
+    b.eq      abort // munmap failed
+    ldp       x0, lr, [sp], #16
+
+    // Shift subsequent capabilities forward (if we delete the last
+    // compartment, we put gibberish instead)
+    ldr       w5, comps_cnt
+    mov       x6, #COMP_SIZE
+    ldr       x7, comps_addr
+    madd      x5, x5, x6, x7 // Get last allocated compartment address
+shift_next_comp:
+    ldp       c2, c3, [x0, #COMP_SIZE]        // load next compartment data
+    stp       c2, c3, [x0]                    // .. and store
+    ldr       x2, [x0, #(COMP_SIZE + COMP_OFFSET_STK_ADDR)]
+    str       x2, [x0, #COMP_OFFSET_STK_ADDR]
+    add       x0, x0, #COMP_SIZE
+    cmp       x0, x5
+    b.lt      shift_next_comp
+
+    ret
